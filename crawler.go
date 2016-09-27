@@ -11,15 +11,12 @@ import (
 )
 
 const (
-	// Maximum number of running go routines on the a crawl. Got code from
-	// http://golang.org/doc/effective_go.html#channels. This is necessary because we can go
-	// out of descriptors if we start creating go routines with no limit. There's also a
-	// great post about this on http://burke.libbey.me/conserving-file-descriptors-in-go/
-	maxOutstanding = 200
+	// Limit the number of goroutines to avoid running out of File descriptors.
+	maxOutstanding = 256
 )
 
 var (
-	// Semaphore to control go routines execution
+	// Semaphore to control goroutine execution.
 	sem = make(chan int, maxOutstanding)
 )
 
@@ -29,20 +26,20 @@ func init() {
 	}
 }
 
-// Link stores information of other URL in this page
+// Link stores information of other URLs in this page.
 type Link struct {
-	Page       *Page // Page information about the other URL
-	CyclicPage bool  // Flag to indicate if this page was already processed
+	Page       *Page // Page information about the other URL.
+	CyclicPage bool  // Flag to indicate if this page has already been processed.
 }
 
 type Page struct {
-	URL          string   // Address of the page
-	Fail         bool     // Flag to indicate that the system failed to access the URL
-	Links        []Link   // List of links for other URLs in this page
-	StaticAssets []string // List of static dependencies of this page
+	URL          string   // Address of the page.
+	Fail         bool     // Flag to indicate that the system failed to access the URL.
+	Links        []Link   // List of links for other URLs in this page.
+	StaticAssets []string // List of static dependencies of this page.
 }
 
-// String transforms the Page into text mode to print the results
+// String method transforms the Page into text mode to print the results.
 func (p Page) String() string {
 	staticAssets := ""
 	for _, staticAsset := range p.StaticAssets {
@@ -65,7 +62,7 @@ func (p Page) String() string {
 		if link.Page != nil {
 			if link.CyclicPage {
 				// Don't print already visited pages to avoid infinite recursion
-				linkPage = fmt.Sprintf("\n    Page: %s ↺", link.Page.URL)
+				linkPage = fmt.Sprintf("\n    Page: %s", link.Page.URL)
 
 			} else {
 				// Add an identification level to the link content
@@ -78,7 +75,7 @@ func (p Page) String() string {
 
 	pageStr := ""
 	if p.Fail {
-		pageStr = fmt.Sprintf("\nPage: %s \n", p.URL)
+		pageStr = fmt.Sprintf("\nPage: %s (Failed to get this URL)\n", p.URL)
 	} else {
 		pageStr = fmt.Sprintf("\nPage: %s\n", p.URL)
 	}
@@ -102,10 +99,10 @@ type crawler struct {
 
 	// visitedPages store all pages already visited in a map, so that if we found a link for the same
 	// page again, we just pick on the map the same object address. The function that prints the page
-	// is responsible for detecting cycle loops
+	// is responsible for detecting cycle loops.
 	visitedPages map[string]*Page
 
-	// visitedPagesLock allows visitedPages to be manipulated safely by go routines
+	// visitedPagesLock allows visitedPages to be manipulated safely by different goroutines.
 	visitedPagesLock sync.Mutex
 }
 
@@ -153,7 +150,7 @@ func crawlPage(c *crawler, page *Page) {
 }
 
 // parseHTML is an auxiliary function of Crawl function that will travel recursively
-// around the HTML document identifying elements to populate the Page object
+// around the HTML document identifying elements to populate the Page object.
 func parseHTML(c *crawler, node *html.Node, page *Page) {
 	if node.Type == html.ElementNode {
 		switch node.Data {
@@ -191,7 +188,6 @@ func parseHTML(c *crawler, node *html.Node, page *Page) {
 						go crawlPage(c, link.Page)
 					}
 				}
-				// TODO: Not checking when the link has a relative path
 				break
 			}
 
