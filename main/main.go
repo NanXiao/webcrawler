@@ -11,5 +11,10 @@ func main() {
 		fmt.Println("Please specify the URL")
 		os.Exit(1)
 	}
-	fmt.Println(webcrawler.Crawl(os.Args[1]))
+
+	for _, v := range os.Args[1:] {
+		fmt.Printf("\nThe site map of %s is:\n", v)
+		fmt.Println(webcrawler.Crawl(v))
+	}
+
 }

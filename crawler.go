@@ -68,7 +68,7 @@ func (p Page) String() string {
 				linkPage = fmt.Sprintf("\n    Page: %s ↺", link.Page.URL)
 
 			} else {
-				// Add an identiation level to the link content
+				// Add an identification level to the link content
 				linkPage = strings.Replace(link.Page.String(), "\n", "\n    ", -1)
 			}
 		}
@@ -110,8 +110,6 @@ type crawler struct {
 }
 
 func Crawl(url string) *Page {
-	fmt.Printf("The %s will be crawled\n", url)
-
 	c := &crawler{domain: url, visitedPages: make(map[string]*Page)}
 
 	c.wg.Add(1)
