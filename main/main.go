@@ -8,7 +8,7 @@ import (
 
 func main() {
 	if len(os.Args) == 1 {
-		fmt.Println("Please specify the URL")
+		fmt.Println("Please specify the URL.")
 		os.Exit(1)
 	}
 

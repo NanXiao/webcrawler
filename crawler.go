@@ -58,14 +58,14 @@ func (p Page) String() string {
 
 		linkPage := ""
 
-		// Check for nil pointer because there can be links without href (anchors)
+		// Check for nil pointer because there can be links without href (anchors).
 		if link.Page != nil {
 			if link.CyclicPage {
-				// Don't print already visited pages to avoid infinite recursion
+				// Don't print already visited pages to avoid infinite recursion.
 				linkPage = fmt.Sprintf("\n    Page: %s", link.Page.URL)
 
 			} else {
-				// Add an identification level to the link content
+				// Add an identification level to the link content.
 				linkPage = strings.Replace(link.Page.String(), "\n", "\n    ", -1)
 			}
 		}
