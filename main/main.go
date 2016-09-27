@@ -14,7 +14,7 @@ func main() {
 
 	for _, v := range os.Args[1:] {
 		fmt.Printf("\nThe site map of %s is:\n", v)
-		fmt.Println(webcrawler.Crawl(v))
+		fmt.Println(webcrawler.Crawl(v, webcrawler.HTTPFetcher{}))
 	}
 
 }

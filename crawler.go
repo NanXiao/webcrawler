@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"golang.org/x/net/html"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -24,6 +25,31 @@ func init() {
 	for i := 0; i < maxOutstanding; i++ {
 		sem <- 1
 	}
+}
+
+// Fetcher creates an interface to allow a flexibility on how we retrieve the page data. For tests
+// we will simulate the response while in production we will do a HTTP GET.
+type Fetcher interface {
+	Fetch(url string) (io.Reader, error)
+}
+
+// HTTPFetcher will retrieve the page content via HTTP GET request.
+type HTTPFetcher struct {
+}
+
+func (f HTTPFetcher) Fetch(url string) (io.Reader, error) {
+	response, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	content, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes.NewReader(content), nil
 }
 
 // Link stores information of other URLs in this page.
@@ -94,8 +120,9 @@ func (p Page) String() string {
 }
 
 type crawler struct {
-	domain string
-	wg     sync.WaitGroup
+	domain  string
+	fetcher Fetcher
+	wg      sync.WaitGroup
 
 	// visitedPages store all pages already visited in a map, so that if we found a link for the same
 	// page again, we just pick on the map the same object address. The function that prints the page
@@ -106,8 +133,8 @@ type crawler struct {
 	visitedPagesLock sync.Mutex
 }
 
-func Crawl(url string) *Page {
-	c := &crawler{domain: url, visitedPages: make(map[string]*Page)}
+func Crawl(url string, fetcher Fetcher) *Page {
+	c := &crawler{domain: url, fetcher: fetcher, visitedPages: make(map[string]*Page)}
 
 	c.wg.Add(1)
 	p := &Page{URL: url}
@@ -126,21 +153,13 @@ func crawlPage(c *crawler, page *Page) {
 		c.wg.Done()
 	}()
 
-	resp, err := http.Get(page.URL)
+	r, err := c.fetcher.Fetch(c.domain)
 	if err != nil {
 		page.Fail = true
 		return
 	}
 
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		page.Fail = true
-		return
-	}
-
-	root, err := html.Parse(bytes.NewReader(body))
+	root, err := html.Parse(r)
 	if err != nil {
 		page.Fail = true
 		return
